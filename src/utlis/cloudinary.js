@@ -22,8 +22,13 @@ const uploadOnCloudinary = async(localFilePath)=>{
         })
 
         //Remove file for local server if upload to cloudinary is successful
-        console.log("File is uploaded on cloudinary with url :", response.url)
+        // console.log("File is uploaded on cloudinary with url :", response.url)
      
+        //Remove files from server when uploaded on cloudinary
+        fs.unlinkSync(localFilePath)
+
+        // console.log("Response from Cloudinary : ", response)
+
         return response
 
     } catch (error) {

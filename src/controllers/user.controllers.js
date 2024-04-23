@@ -38,7 +38,7 @@ const registerUser = asyncHandler( async(req, res)=>{
     //3 
     // User model can directly contact mongoDB 
     // We will check if there exist a user with same email or same username
-    const existedUser = User.findOne({
+    const existedUser = await User.findOne({
 
         $or:[{username},{email}]
 
@@ -48,9 +48,16 @@ const registerUser = asyncHandler( async(req, res)=>{
         throw new ApiError(409, "User with same email or username already exists")
     }
 
+    // console.log("Files in req.files user controller : ", req.files)
+
     //4
     const avatarLocalPath = req.files?.avatar[0]?.path
-    const coverImageLocalPath = req.files?.coverImage[0]?.path 
+    // const coverImageLocalPath = req.files?.coverImage[0]?.path 
+
+    let coverImageLocalPath
+    if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length>0){
+        coverImageLocalPath = req.files.coverImage[0].path
+    }
 
     if(!avatarLocalPath){
         throw new ApiError(400,"Avatar file is required")
@@ -72,7 +79,7 @@ const registerUser = asyncHandler( async(req, res)=>{
         coverImage: coverImage?.url || "",
         email,
         password,
-        username: username.toLoweCase()
+        username: username.toLowerCase()
     })
 
     //7

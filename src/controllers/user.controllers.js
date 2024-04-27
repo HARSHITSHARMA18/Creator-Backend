@@ -4,6 +4,7 @@ import {User} from "../models/user.model.js"
 import {uploadOnCloudinary} from "../utlis/cloudinary.js"
 import {ApiResponse} from "../utlis/ApiResponse.js"
 import jwt from "jsonwebtoken"
+import mongoose from "mongoose";
 
 
 // Generate Access and Refresh Tokens
@@ -560,6 +561,7 @@ const updateUserCoverImage = asyncHandler( async(req,res)=>{
 
 })
 
+// Details
 
 const getUserChannelProfile = asyncHandler( async(req, res)=>{
 
@@ -674,6 +676,77 @@ const getUserChannelProfile = asyncHandler( async(req, res)=>{
 })
 
 
+const getWatchHistory = asyncHandler( async(req,res)=>{
+
+    const user = await User.aggregate([
+        
+        //get the user
+        {
+            $match :{
+                _id : new mongoose.Types.ObjectId(req.user?._id)
+            }
+        },
+        
+        // link videos to user
+        {
+ 
+            $lookup :{
+                from :"videos",
+                localField:"watchHistory",
+                foreignField:"_id",
+                as : "watchHistory",
+
+                // as owners are needed , a sub pipeline will be needed to delve into videos 
+                pipeline:[
+                 
+                    //in videos currently
+
+                    {
+                       $lookup: {
+                        from :"users",
+                        localField:"owner",
+                        foreignField:"_id",
+                        as:"owner",
+
+                        //TODO : try without a sub pipeline on 2nd level itself
+                        pipeline:[
+                            {
+                             $project: {
+                                fullName:1,
+                                username:1,
+                                avatar:1
+                             }
+                            }
+                        ]
+                       }
+                    },
+
+                    // to destructure the owner object from array of objects 
+                    {
+                        $addFields:{
+                            //overwrite exisiting field
+                            owner:{
+                              $first : "$owner"  
+                            }
+                        }
+                    }
+
+                ]
+            }
+        
+        }
+    ])
+
+
+    return res
+           .status(200)
+           .json(
+            new ApiResponse(200, user[0].watchHistory, "Watch History Fetched Successfully")
+           )
+
+})
+
+
 
 export {
     registerUser, 
@@ -685,5 +758,6 @@ export {
     updateAccountDetails,
     updateUserAvatar,
     updateUserCoverImage,
-    getUserChannelProfile
+    getUserChannelProfile,
+    getWatchHistory
 }

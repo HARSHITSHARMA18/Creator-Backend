@@ -383,7 +383,7 @@ const changeCurrentPassword = asyncHandler( async(req,res)=>{
 
 const getCurrentUser = asyncHandler( async(req, res)=>{
 
-    // As we have auth middleware, which has access to user object
+    // As we have auth middleware: verifyJwt, which has access to user object
 
     return res
            .status(200)

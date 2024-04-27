@@ -452,6 +452,7 @@ const updateUserAvatar = asyncHandler( async(req,res)=>{
     //5. Update the new avatar url in DB
     //6. Send response
 
+    //TODO : Remove the old avatar image from cloudinary 
 
     //1.
     const avatarLocalPath = req.file?.path
@@ -512,6 +513,8 @@ const updateUserCoverImage = asyncHandler( async(req,res)=>{
     //5. Update the new coverImage url in DB
     //6. Send response
 
+    //TODO : Remove the old cover image from cloudinary 
+
 
     //1.
     const coverImageLocalPath = req.file?.path
@@ -557,6 +560,121 @@ const updateUserCoverImage = asyncHandler( async(req,res)=>{
 
 })
 
+
+const getUserChannelProfile = asyncHandler( async(req, res)=>{
+
+     // Steps : 
+
+     //1. Get the username from params of the visited channel
+     //2. Apply validation for username
+     //3. Apply aggregate pipeline to get the required fields of user 
+     //4. Apply validations on the result from pipelines
+     //5. Send the response
+
+
+     //1.
+     const {username} = req.params
+
+     //2.
+     if(!username){
+        throw new ApiError(400,"Username is Missing" )
+     }
+
+     //3.
+     const channel = await User.aggregate([
+        //filter the username
+        {
+            $match : {
+                username : username?.toLowerCase()
+            }
+        },
+
+        //get the subscribers of a channel from subscription model using lookup
+        {
+
+            $lookup :{ 
+                from : "subscriptions", // name of Subscription model in DB = subscriptions
+                localField: "_id",
+                foreignField: "channel",  // finding the channel documents with user id
+                as : "subscribers"
+            }
+
+        },
+
+        //get the channels user has subscriber To
+        {
+            $lookup:{
+                from : "subscriptions",
+                localField : "_id",
+                foreignField :"subscriber",
+                as : "subscribedTo"
+            }
+        },
+        
+        //add sybscribers and subscribedTo field in the user document
+        {
+            $addFields :{
+                
+                //name of field to add
+                subscribersCount : {
+                    $size : "$subscribers"
+                },
+
+                channelsSubscribedToCount :{ 
+                    $size: "$subscribedTo"
+                },
+
+                //for indication if the user has subscribed to the current channel , they are visiting
+                isSubscribed: {
+                   
+                    $cond : {
+
+                        //check if user on the channel is present in the subscribers list or not 
+                        if:{ $in :[req.user?._id, "$subscribers.subscriber"]},
+                        then : true,
+                        else: false
+                    }
+
+                }
+            }
+        },
+
+        // Pass the values
+        {
+          
+            $project:{
+                fullName : 1,
+                username : 1,
+                subscribersCount : 1,
+                channelsSubscribedToCount : 1,
+                isSubscribed : 1,
+                avatar : 1,
+                coverImage : 1,
+                email : 1,
+            }
+
+        }
+     ])
+
+     //4.
+     if(!channel?.length){
+
+        throw new ApiError(404, "Channel does not exist")
+
+     }
+
+     //5.
+     return res
+            .status(200)
+            .json(
+                new ApiResponse(200, channel[0], "User Channel fetched Successfully")
+            )
+
+
+})
+
+
+
 export {
     registerUser, 
     loginUser,
@@ -566,5 +684,6 @@ export {
     getCurrentUser,
     updateAccountDetails,
     updateUserAvatar,
-    updateUserCoverImage
+    updateUserCoverImage,
+    getUserChannelProfile
 }

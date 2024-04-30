@@ -233,8 +233,12 @@ const logoutUser = asyncHandler( async(req,res)=>{
 
         //update what
         {
-            $set :{
-                refreshToken: undefined
+            // $set :{
+            //     refreshToken: undefined
+            // }
+
+            $unset :{
+                refreshToken:1 // to remove a field from document 
             }
         },
 
@@ -316,7 +320,7 @@ const refreshAccessToken = asyncHandler( async(req,res)=>{
     return res
            .status(200)
            .cookie("accessToken", accessToken, options)
-           .cookie("refreshToken", newRefreshTokenewRefreshToken, options)
+           .cookie("refreshToken", newRefreshToken, options)
            .json(
              new ApiResponse(
                  200,
@@ -387,7 +391,9 @@ const getCurrentUser = asyncHandler( async(req, res)=>{
 
     return res
            .status(200)
-           .json(200, req.user, "Curretn User fetched Successfully")
+           .json(
+            new ApiResponse(200, req.user, "Current User fetched Successfully")
+           )
 })
 
 const updateAccountDetails = asyncHandler( async(req,res)=>{
